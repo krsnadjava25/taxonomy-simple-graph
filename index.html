@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Taxonomy Visualizer</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap-responsive.min.css" rel="stylesheet">
+    <link href='http://fonts.googleapis.com/css?family=Rosario:400,700' rel='stylesheet' type='text/css'>
+    <link type="text/css" rel="stylesheet" href="css/style.css"/>
+    <style type="text/css">
+        circle.node {
+          cursor: pointer;
+          stroke: #000;
+          stroke-width: .5px;
+        }
+        circle.node.directory {
+          stroke: #9ecae1;
+          stroke-width: 2px;
+        }
+        circle.node.collapsed {
+          stroke: #555;
+        }
+        .nodetext {
+          fill: #252929;
+          font-weight: bold;
+          text-shadow: 0 0 0.2em white;
+        }
+        line.link {
+          fill: none;
+          stroke: #9ecae1;
+          stroke-width: 1.5px;
+        }
+    </style>
+</head>
+<body>
+    <input type="file" id="fileInput"/>
+    <button onClick="visualize()">Visualize CSV</button>
+    <div id="visualization"></div>
+    <script type="text/javascript" src="js/d3.js"></script>
+    <script type="text/javascript" src="js/d3.geom.js"></script>
+    <script type="text/javascript" src="js/d3.layout.js"></script>
+    <script type="text/javascript" src="js/codeflower.js"></script>
+    <script type="text/javascript">
+        var currentGraph;
+        var createGraph = function(json) {
+            if (currentGraph) {
+                currentGraph.cleanup();
+            }
+            currentGraph = new CodeFlower('#visualization', 1200, 800).update(json);
+        };
+        var parseCSV = function(dataString) {
+            var lines = dataString
+            .split(/\n/)                     // Convert to one string per line
+            .map(function(lineStr) {
+                return lineStr.split(";");   // Convert each line to array (,)
+            })
+            .slice(1);                       // Discard header line
+            return lines;
+        };
+        var visualize = function() {
+            var file = fileInput.files[0];
+            var textType = /text.*/;
+            var csvType = 'text/csv';
+            if (file.type.match(csvType)) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var arr = parseCSV(reader.result);
+                    var nodes = [];
+                    arr.forEach(function(data) {
+                        var l0Found = false;
+                        var l1Found = false;
+                        var l2Found = false;
+                        var l0idx = -999;
+                        var l1idx = -999;
+                        var l2idx = -999;
+                        nodes.forEach(function(node0, idx0) {
+                            if (node0.name === data[0]) {
+                                l0Found = true;
+                                l0idx = idx0;
+                                if (node0.children && data[1]) {
+                                    node0.children.forEach(function(node1, idx1) {
+                                        if (node1.name === data[1]) {
+                                            l1Found = true;
+                                            l1idx = idx1;
+                                            if (node1.children && data[2]) {
+                                                node1.children.forEach(function(node2, idx2) {
+                                                    if (node2.name === data[2]) {
+                                                        l2Found = true;
+                                                        l2idx = idx2;
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                        if (!l0Found && data[0] && data[0] !== '' && data[0].length > 0) {
+                            nodes.push({ name: data[0], size: 1500 });
+                        }
+                        if (l0Found && !l1Found && data[1] && data[1] !== '' && data[1].length > 0) {
+                            if (!nodes[l0idx].children) {
+                                nodes[l0idx].children = [];
+                            }
+                            nodes[l0idx].children.push({ name: data[1], size: 150 });
+                        }
+                        if (l0Found && l1Found && !l2Found && data[2] && data[2] !== '' && data[2].length > 0) {
+                            if (!nodes[l0idx].children[l1idx].children) {
+                                nodes[l0idx].children[l1idx].children = [];
+                                // delete nodes[l0idx].children[l1idx].size;
+                            }
+                            nodes[l0idx].children[l1idx].children.push({ name: data[2], size: 15 });
+                        }
+                    });
+                    var data = { name: 'PTM', children: nodes };
+                    createGraph(data);
+                }
+                reader.readAsText(file);
+            } else {
+                alert('File not CSV formated');
+            }
+        };
+    </script>
+</body>
+</html>
