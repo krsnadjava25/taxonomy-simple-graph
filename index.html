@@ -63,7 +63,7 @@
             var file = fileInput.files[0];
             var textType = /text.*/;
             var csvType = 'text/csv';
-            if (file.type.match(csvType)) {
+            if (file.type.match(textType)) {
                 var reader = new FileReader();
                 reader.onload = function(e) {
                     var arr = parseCSV(reader.result);
@@ -119,7 +119,7 @@
                 }
                 reader.readAsText(file);
             } else {
-                alert('File not CSV formated');
+                alert('File not Text formated');
             }
         };
     </script>
